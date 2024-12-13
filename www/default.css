@@ -1,0 +1,23 @@
+body {
+    background: #333;
+    color: white;
+}
+
+table,
+th,
+td {
+    border: 1px solid;
+    padding: 0.5em;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+.sortup::after {
+    content: "⬆";
+}
+
+.sortdown::after {
+    content: "⬇";
+}

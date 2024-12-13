@@ -1,58 +1,175 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
+
+use serde::{Deserialize, Serialize};
+
+use crate::log;
 
 /* may totally change to a json object ? */
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Game {
-    id: u64, // local id, use VNDB
-    name: String,
-    release_date: u32, /* may change to a stronger date type */
-    tag: HashSet<String>,
-    numtag: HashMap<String, f32>, /* f32 or i32 ? */
-    score_user: f32,
-    score_bgm: f32,
-    score_vndb: f32,
-    /* friends' score ? */
+    pub id: u64, // local id
+    pub property: HashMap<String, String>,
+    pub num_property: HashMap<String, f64>,
+    pub tag: HashSet<String>,
 }
+// impl Ord for Game {
+//     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+//         u64::cmp(&self.id, &other.id)
+//     }
+// }
+// impl PartialOrd for Game {
+//     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+//         Some(self.cmp(other))
+//     }
+// }
+// impl Eq for Game {}
+// impl PartialEq for Game {
+//     fn eq(&self, other: &Self) -> bool {
+//         u64::eq(&self.id, &other.id)
+//     }
+// }
 
 impl Game {
-    pub fn empty() -> Self {
+    pub fn new() -> Self {
         Self {
-            id: 0, // ?????
-            name: String::new(),
-            release_date: 0,
+            id: 0,
             tag: HashSet::new(),
-            numtag: HashMap::new(),
-            score_bgm: 0.,
-            score_user: 0.,
-            score_vndb: 0.,
-        }
-    }
-    pub fn from_name(name: &str) -> Self {
-        Self {
-            name: name.to_owned(),
-            ..Self::empty()
+            num_property: HashMap::new(),
+            property: HashMap::new(),
         }
     }
     pub fn add_tag(&mut self, tag: &str) {
         let _ = self.tag.insert(tag.to_owned());
     }
-    pub fn add_numtag(&mut self, tag: &str, num: f32) {
-        let _ = self.numtag.insert(tag.to_owned(), num);
+    pub fn add_num_property(&mut self, tag: &str, num: f64) {
+        let _ = self.num_property.insert(tag.to_owned(), num);
     }
-}
-
-pub struct List {
-    // must sorted ! storage game id
-    games: VecDeque<u64>,
-    name: String,
-}
-
-impl List {
-    fn apply(&mut self, filt: Filter) {}
-    fn apply_many(&mut self, filts: Vec<Filter>) {
-        for f in filts {
-            self.apply(f);
+    pub fn add_property(&mut self, name: &str, value: &str) {
+        let _ = self.property.insert(name.to_owned(), value.to_owned());
+    }
+    pub fn has_tag(&self, tag: &str) -> bool {
+        self.tag.contains(tag)
+    }
+    pub fn get_property(&self, name: &str) -> Option<String> {
+        self.property.get(name).cloned()
+    }
+    pub fn get_num_property(&self, name: &str) -> Option<f64> {
+        self.num_property.get(name).copied()
+    }
+    pub fn get_any(&self, name: &str) -> String {
+        if let Some(x) = self.get_num_property(name) {
+            return x.to_string();
+        }
+        if let Some(s) = self.get_property(name) {
+            return s;
+        }
+        if self.has_tag(name) {
+            String::from("*")
+        } else {
+            String::from("")
+        }
+    }
+    pub fn satisfy(&self, filt: &Filter) -> bool {
+        match filt {
+            Filter::Have(s) => {
+                self.tag.contains(s)
+                    || self.property.contains_key(s)
+                    || self.num_property.contains_key(s)
+            }
+            Filter::ContainProperty(key, value) => {
+                let game_property = self.property.get(key);
+                if let Some(s) = game_property {
+                    s.contains(value)
+                } else {
+                    false
+                }
+            }
+            Filter::NumEqual(key, num) => {
+                let game_num = self.num_property.get(key);
+                if let Some(game_num) = game_num {
+                    game_num == num
+                } else {
+                    false
+                }
+            }
+            Filter::NumGreater(key, num) => {
+                let game_num = self.num_property.get(key);
+                if let Some(game_num) = game_num {
+                    game_num > num
+                } else {
+                    false
+                }
+            }
+            Filter::NumLess(key, num) => {
+                let game_num = self.num_property.get(key);
+                if let Some(game_num) = game_num {
+                    game_num < num
+                } else {
+                    false
+                }
+            }
+            Filter::Not(f) => !self.satisfy(f),
+            Filter::Or(f1, f2) => self.satisfy(f1) || self.satisfy(f2),
+            Filter::And(f1, f2) => self.satisfy(f1) && self.satisfy(f2),
         }
     }
 }
 
-pub struct Filter {}
+pub struct GameList {
+    pub games: HashSet<u64>,
+    pub name: String,
+}
+
+impl GameList {
+    pub fn new() -> Self {
+        Self {
+            games: HashSet::new(),
+            name: String::new(),
+        }
+    }
+    pub fn set_name(&mut self, s: &str) {
+        self.name = s.to_string();
+    }
+    pub fn set_all(&mut self, db: &impl DataProviver) {
+        self.games = db.get_all_id();
+    }
+    pub fn apply(&mut self, filt: Filter, db: &impl DataProviver) {
+        self.games.retain(|&game_id| {
+                let game = db.get_game(game_id);
+                if let Some(game) = game {
+                    game.satisfy(&filt)
+                } else {
+                    log::error(&format!(
+                        "In game.rs > GameList::apply() > db.get_game({}) | return none which is unexpected",
+                        game_id
+                    ));
+                    false
+                }
+            });
+    }
+    pub fn apply_many(&mut self, filts: Vec<Filter>, db: &impl DataProviver) {
+        for f in filts {
+            self.apply(f, db);
+        }
+    }
+    pub fn len(&self) -> usize {
+        self.games.len()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Filter {
+    Have(String),
+    ContainProperty(String, String),
+    NumEqual(String, f64),
+    NumGreater(String, f64),
+    NumLess(String, f64),
+    Not(Box<Filter>),
+    Or(Box<Filter>, Box<Filter>),
+    And(Box<Filter>, Box<Filter>),
+}
+
+pub trait DataProviver {
+    fn get_game(&self, id: u64) -> Option<&Game>;
+    fn get_all_id(&self) -> HashSet<u64>;
+}
