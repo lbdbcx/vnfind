@@ -28,5 +28,7 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Build
-        path: ./target/debug/vnfind
+        name: binary
+        path: |
+          ./target/debug/vnfind
+          ./target/debug/vnfind.exe
