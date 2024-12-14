@@ -30,5 +30,6 @@ jobs:
       with:
         name: binary
         path: |
-          ./target/debug/vnfind
-          ./target/debug/vnfind.exe
+          target/debug/vnfind
+          target/debug/vnfind.exe
+          www

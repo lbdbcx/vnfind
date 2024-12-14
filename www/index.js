@@ -69,11 +69,16 @@ async function show_game(data) {
     for (row of data.row) {
         let s = $("<tr></tr>");
         let id = null;
-        for (x of row) {
+        for (i in row) {
+            let x = row[i];
             if (id == null) {
                 id = x;
             }
-            s.append("<td>" + x + "</td>");
+            let td = $(`<td>${x}</td>`);
+            if (data.column[i] == "标题") {
+                td.addClass("left-align");
+            }
+            s.append(td);
         }
         s.dblclick(function () {
             change_game(id);
@@ -85,19 +90,13 @@ async function show_game(data) {
 }
 
 function remove_value() {
-    let node = $(this);
-    console.log(node.prev());
-    node.prev().remove();
-    node.prev().remove();
-    node.next().remove();
-    node.remove();
+    $(this).parent().remove();
 }
 
 function add_value(form, k = "", v = "") {
     let new_value = `<input type="text" class="form_k" value="${k}"/><input type="text" class="form_v" value="${v}" />`;
-    let del_button = $(`<button type="button"></button>`).text("X");
-    del_button.click(remove_value);
-    form.children().last().prev().before(new_value).before(del_button).before($("<br />"));
+    let del_button = $(`<button type="button" class="in-form">X</button>`).click(remove_value);
+    $("#new_value_button").before($("<div></div>").append(new_value).append(del_button).append("<br />"));
 }
 
 function send_add_game(data) {
@@ -113,11 +112,10 @@ function send_modify_game(data) {
         $("#add_form").remove();
     })
 }
-function click_add_game(e, id) {
+function click_add_game(id) {
     let c = id > 0;
-    let children = $(e.target).parent().children();
-    let keys = children.filter((_, x) => { return $(x).hasClass("form_k"); });
-    let values = children.filter((_, x) => { return $(x).hasClass("form_v"); });
+    let keys = $("#add_form .form_k");
+    let values = $("#add_form .form_v");
     let tag = [], prop = {}, num_prop = {};
     for (let i = 0; i < keys.length; ++i) {
         let k = $(keys[i]).val().trim(), v = $(values[i]).val().trim();
@@ -126,7 +124,7 @@ function click_add_game(e, id) {
             continue;
         }
         if (k == "tag" || k == "") {
-            tag = v.split(/,|，/).map((x) => x.trim());
+            tag = tag.concat(v.split(/,|，/).map((x) => x.trim()));
         }
         else if (is_num(v)) {
             num_prop[k] = v;
@@ -139,28 +137,31 @@ function click_add_game(e, id) {
 }
 
 function show_form(data) {
-    let c = data.id > 0;
-    let form = $(`<form id="add_form">
-        <button type="button" id="submit_form">提交</button>
-    </form>`);
-    let new_button = $(`<button type="button"></button>`).text("+").click(function () {
+    let is_modify = data.id > 0;
+    let form = $(`<form id="add_form"></form>`);
+    let cancel_button = $(`<button type="button">取消</button>`).click(function () {
+        $("#add_form").remove();
+    });
+    let submit_button = $(`<button type="button" class="primary">提交</button>`).click(function () {
+        click_add_game(data.id);
+    });
+    let new_button = $(`<button type="button" id="new_value_button">+</button>`).click(function () {
         add_value(form);
     });
-    form.children().last().before(new_button);
+    form.append(new_button);
+    form.append(cancel_button);
+    form.append(submit_button);
+    $("#form_container").html(form);
     for (k in data.property) {
         add_value(form, k, data.property[k]);
     }
     for (k in data.num_property) {
         add_value(form, k, data.num_property[k]);
     }
-    if (data.tag) { add_value(form, "tag", data.tag.join(',')); }
-    $("#form_container").html(form);
-    if (c) {
+    if (data.tag) { add_value(form, "tag", data.tag.join(', ')); }
+    if (is_modify) {
         $("#submit_form").text("修改");
     }
-    $("#submit_form").click(function (e) {
-        click_add_game(e, data.id);
-    });
 }
 
 window.onload = async function () {

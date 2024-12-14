@@ -3,7 +3,7 @@
 #[allow(unused_variables)]
 mod config;
 mod data;
-mod frontend;
+// mod frontend;
 mod game;
 mod log;
 mod output;

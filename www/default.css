@@ -1,13 +1,86 @@
-body {
-    background: #333;
-    color: white;
+body[theme="dark"] {
+    --theme-background: #222;
+    --theme-foreground: rgba(255, 255, 255, .95);
+    --theme-border: rgb(70, 70, 70);
+    --theme-button-background: #4f4f4f;
+    --theme-button-background-hover: #444;
 }
 
+body {
+    background: var(--theme-background);
+    color: var(--theme-foreground);
+    font-size: large;
+}
+
+/* input */
+input {
+    background: transparent;
+    color: var(--theme-foreground);
+    border: 1px solid var(--theme-border);
+    border-top: none;
+    padding: .4em;
+    font-size: medium;
+    width: auto;
+}
+
+input:nth-child(2),
+input:first-child {
+    border-top: 1px solid var(--theme-border);
+}
+
+textarea:focus,
+input:focus {
+    outline: none;
+}
+
+/* button */
+button {
+    background: var(--theme-button-background);
+    color: var(--theme-foreground);
+    border: none;
+    padding: .7em 1.5em;
+    border-radius: .3em;
+    margin: .5em;
+    font-weight: bolder;
+}
+
+button.primary {
+    background: #2185d0;
+}
+
+button.primary:hover {
+    background: #1678c2;
+}
+
+button:hover {
+    background: var(--theme-button-background-hover);
+    cursor: pointer;
+}
+
+button.in-form {
+    margin: 0;
+    border-radius: 0;
+    height: 2.8em;
+}
+
+/* table style */
 table,
 th,
 td {
-    border: 1px solid;
     padding: 0.5em;
+    text-align: center;
+}
+
+td.left-align {
+    text-align: left;
+}
+
+td {
+    border-top: 1px solid var(--theme-border);
+}
+
+th {
+    font-weight: bolder;
 }
 
 table {
@@ -20,4 +93,17 @@ table {
 
 .sortdown::after {
     content: "⬇";
+}
+
+/* layout */
+#gametable-page,
+#add_form div {
+    display: flex;
+    justify-content: center;
+}
+
+#left-container {}
+
+#right-container {
+    padding: 2em;
 }
