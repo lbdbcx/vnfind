@@ -7,9 +7,19 @@ body[theme="dark"] {
 }
 
 body {
+    --headbar-height: 3em;
+    --tag-background: #1678c2;
+}
+
+body {
     background: var(--theme-background);
     color: var(--theme-foreground);
     font-size: large;
+}
+
+/* display */
+.hidden {
+    display: none;
 }
 
 /* input */
@@ -63,6 +73,20 @@ button.in-form {
     height: 2.8em;
 }
 
+
+/* column input */
+/* search input */
+#left-container div input {
+    border-radius: 100em;
+    height: 2em;
+    padding: 0 1em;
+    margin: 0 1em;
+    flex-grow: 1;
+    border: 1px solid var(--theme-border);
+    width: 1em;
+    min-width: 5em;
+}
+
 /* table style */
 table,
 th,
@@ -95,15 +119,98 @@ table {
     content: "⬇";
 }
 
-/* layout */
-#gametable-page,
-#add_form div {
+/* form style */
+#add-form {
+    margin-top: 3em;
+}
+
+#add-form input {
+    width: 45%;
+}
+
+/* headbar */
+#headbar {
+    height: var(--headbar-height);
+    margin: 0;
+    padding-left: 2em;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 101;
+    border-bottom: 1px solid var(--theme-border);
+    width: 100%;
     display: flex;
+    flex-direction: column;
     justify-content: center;
 }
 
-#left-container {}
+#headbar h3 {
+    margin: 0;
+}
+
+/* tag */
+#tag-container {
+    margin-top: 1em;
+}
+
+.tag {
+    background-color: var(--tag-background);
+    margin: .3em;
+    padding: 0 .3em;
+    border-radius: 3px;
+}
+
+/* game title */
+#game-title-container {
+    justify-content: space-between;
+
+}
+
+/* layout */
+#gametable-page,
+#add-form div {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+#gametable-page {
+    height: calc(100svh - var(--headbar-height) - 2em);
+    margin-top: var(--headbar-height);
+    margin-left: 2em;
+    margin-right: 2em;
+}
+
+#left-container {
+    overflow: scroll;
+    padding-top: 1em;
+    /* for Firefox */
+    scrollbar-width: none;
+    /* for IE and edge */
+    -ms-overflow-style: none;
+}
+
+/* for Chrome, Safari, Opera */
+#left-container::-webkit-scrollbar {
+    display: none;
+}
 
 #right-container {
-    padding: 2em;
+    padding-left: 2em;
+    padding-top: 1em;
+    min-width: 25em;
+    width: 40svw;
+    border-left: 1px solid var(--theme-border);
+}
+
+.flex-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.flex-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }

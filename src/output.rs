@@ -25,7 +25,7 @@ impl Table {
                 this_row.push(if col == "id" {
                     game.id.to_string()
                 } else {
-                    game.get_any(col)
+                    game.get_any(col).to_owned()
                 });
             }
             row.push(this_row);

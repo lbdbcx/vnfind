@@ -27,14 +27,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: cargo build --verbose
+      run: |
+        cargo build --verbose
+        cp target/debug/vnfind* .
     - name: Run tests
       run: cargo test --verbose
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: binary_${{ matrix.release_suffix }}
+        name: vnfind_${{ matrix.release_suffix }}
         path: |
-          target/debug/vnfind
-          target/debug/vnfind.exe
+          vnfind
+          vnfind.exe
           www

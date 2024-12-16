@@ -9,7 +9,7 @@ use crate::log;
 pub struct Game {
     pub id: u64, // local id
     pub property: HashMap<String, String>,
-    pub num_property: HashMap<String, f64>,
+    // pub num_property: HashMap<String, f64>,
     pub tag: HashSet<String>,
 }
 // impl Ord for Game {
@@ -34,49 +34,57 @@ impl Game {
         Self {
             id: 0,
             tag: HashSet::new(),
-            num_property: HashMap::new(),
+            // num_property: HashMap::new(),
             property: HashMap::new(),
         }
     }
     pub fn add_tag(&mut self, tag: &str) {
         let _ = self.tag.insert(tag.to_owned());
     }
-    pub fn add_num_property(&mut self, tag: &str, num: f64) {
-        let _ = self.num_property.insert(tag.to_owned(), num);
-    }
+    // pub fn add_num_property(&mut self, tag: &str, num: f64) {
+    //     let _ = self.num_property.insert(tag.to_owned(), num);
+    // }
     pub fn add_property(&mut self, name: &str, value: &str) {
         let _ = self.property.insert(name.to_owned(), value.to_owned());
     }
     pub fn has_tag(&self, tag: &str) -> bool {
         self.tag.contains(tag)
     }
-    pub fn get_property(&self, name: &str) -> Option<String> {
-        self.property.get(name).cloned()
+    pub fn get_property(&self, name: &str) -> Option<&str> {
+        self.property.get(name).map(|x| x.as_str())
     }
     pub fn get_num_property(&self, name: &str) -> Option<f64> {
-        self.num_property.get(name).copied()
+        self.property
+            .get(name)
+            .map(|x| x.parse::<f64>())
+            .transpose()
+            .ok()?
     }
-    pub fn get_any(&self, name: &str) -> String {
-        if let Some(x) = self.get_num_property(name) {
-            return x.to_string();
-        }
+    pub fn get_any(&self, name: &str) -> &str {
         if let Some(s) = self.get_property(name) {
             return s;
         }
         if self.has_tag(name) {
-            String::from("*")
+            "*"
         } else {
-            String::from("")
+            ""
         }
     }
     pub fn satisfy(&self, filt: &Filter) -> bool {
         match filt {
             Filter::Have(s) => {
-                self.tag.contains(s)
-                    || self.property.contains_key(s)
-                    || self.num_property.contains_key(s)
+                if self.tag.contains(s) || self.property.contains_key(s) {
+                    true
+                } else {
+                    for x in self.property.values() {
+                        if x.contains(s) {
+                            return true;
+                        }
+                    }
+                    false
+                }
             }
-            Filter::ContainProperty(key, value) => {
+            Filter::PropertyEqual(key, value) => {
                 let game_property = self.property.get(key);
                 if let Some(s) = game_property {
                     s.contains(value)
@@ -85,25 +93,25 @@ impl Game {
                 }
             }
             Filter::NumEqual(key, num) => {
-                let game_num = self.num_property.get(key);
+                let game_num = self.get_num_property(key);
                 if let Some(game_num) = game_num {
-                    game_num == num
+                    game_num == *num
                 } else {
                     false
                 }
             }
             Filter::NumGreater(key, num) => {
-                let game_num = self.num_property.get(key);
+                let game_num = self.get_num_property(key);
                 if let Some(game_num) = game_num {
-                    game_num > num
+                    game_num > *num
                 } else {
                     false
                 }
             }
             Filter::NumLess(key, num) => {
-                let game_num = self.num_property.get(key);
+                let game_num = self.get_num_property(key);
                 if let Some(game_num) = game_num {
-                    game_num < num
+                    game_num < *num
                 } else {
                     false
                 }
@@ -160,7 +168,7 @@ impl GameList {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Filter {
     Have(String),
-    ContainProperty(String, String),
+    PropertyEqual(String, String),
     NumEqual(String, f64),
     NumGreater(String, f64),
     NumLess(String, f64),

@@ -1,6 +1,4 @@
 #![allow(unused)]
-#[allow(unused_imports)]
-#[allow(unused_variables)]
 mod config;
 mod data;
 // mod frontend;
@@ -62,17 +60,43 @@ async fn index() -> Redirect {
     // NamedFile::open("index.html").await.unwrap()
 }
 
-#[get("/sort?<key>&<rev>&<num>&<page>")]
+#[get("/sort?<key>&<rev>&<num>&<page>&<columns>")]
 async fn sort(
     key: Option<&str>,
     rev: Option<bool>,
     num: Option<usize>,
     page: Option<usize>,
+    columns: Option<&str>,
 ) -> Json<output::Table> {
+    const DEFAULT_COLUMN: [&str; 11] = [
+        "id",
+        "标题",
+        "剧情",
+        "画面",
+        "角色",
+        "感情",
+        "玩法",
+        "日常",
+        "色情",
+        "声音",
+        "结束时间",
+    ];
     let key = key.unwrap_or("结束时间");
     let num = num.unwrap_or(500);
     let rev = rev.unwrap_or(false);
     let page = page.unwrap_or(1) - 1;
+    let columns = columns
+        .map(|v| {
+            let mut res = v.split(['|', '｜']).collect::<Vec<_>>();
+            if !res.contains(&"标题") {
+                res.insert(0, "标题");
+            }
+            if !res.contains(&"id") {
+                res.insert(0, "id");
+            }
+            res
+        })
+        .unwrap_or(Vec::from(DEFAULT_COLUMN));
 
     let db = db!();
     let games = db.get_all_id();
@@ -102,8 +126,8 @@ async fn sort(
             (Ok(_), Err(_)) => Ordering::Greater,
             (Err(_), Ok(_)) => Ordering::Less,
             (Err(_), Err(_)) => {
-                if a_value.cmp(&b_value) != Ordering::Equal {
-                    a_value.cmp(&b_value)
+                if a_value.cmp(b_value) != Ordering::Equal {
+                    a_value.cmp(b_value)
                 } else {
                     a.cmp(&b)
                 }
@@ -117,22 +141,8 @@ async fn sort(
 
     let start = (games.len() - 1).min(num * page);
     let end = games.len().min(num * (page + 1));
-    Json(Table::from(
-        &games[start..end],
-        vec![
-            "id",
-            "标题",
-            "剧情",
-            "画面",
-            "角色",
-            "感情",
-            "玩法",
-            "日常",
-            "色情",
-            "声音",
-            "结束时间",
-        ],
-    ))
+
+    Json(Table::from(&games[start..end], columns))
 }
 
 #[get("/get_game?<id>")]
@@ -141,8 +151,8 @@ async fn get_game(id: u64) -> Option<Json<Game>> {
 }
 
 #[post("/add_game", data = "<game>")]
-async fn add_game(game: Json<Game>) {
-    db!().insert(game.0);
+async fn add_game(game: Json<Game>) -> String {
+    db!().insert(game.0).to_string()
 }
 
 #[delete("/del_game")]

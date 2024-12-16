@@ -115,11 +115,12 @@ impl DataBase {
     pub fn default() -> Self {
         Self::load(None).unwrap_or(Self::empty())
     }
-    pub fn insert(&mut self, mut g: Game) {
+    pub fn insert(&mut self, mut g: Game) -> u64 {
         self.count += 1;
         g.id = self.count;
         self.games.insert(self.count, g);
         self.save();
+        self.count
     }
     pub fn modify(&mut self, id: u64, new_game: Game) {
         let _ = self.games.insert(id, new_game);

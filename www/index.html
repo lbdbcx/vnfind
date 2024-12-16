@@ -10,14 +10,19 @@
 </head>
 
 <body theme="dark">
-  <h1>Vnfind</h1>
+  <div id="headbar">
+    <h3>Vnfind</h3>
+  </div>
   <div id="gametable-page">
-    <div id="left-container">
-      <button id="add_btn">添加</button>
-      <div id="table_container"></div>
+    <div id="left-container" class="flex-column">
+      <div class="flex-row">
+        <button id="add-btn">添加</button>
+        <input id="columns-input" />
+        <input id="search-input" />
+      </div>
+      <div id="table-container"></div>
     </div>
-    <div id="right-container">
-      <div id="form_container"></div>
+    <div id="right-container" class="hidden">
     </div>
   </div>
 </body>
