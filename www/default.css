@@ -30,7 +30,7 @@ input {
     border-top: none;
     padding: .4em;
     font-size: medium;
-    width: auto;
+    /* width: auto; */
 }
 
 input:nth-child(2),
@@ -48,7 +48,7 @@ button {
     background: var(--theme-button-background);
     color: var(--theme-foreground);
     border: none;
-    padding: .7em 1.5em;
+    padding: .7em 1em;
     border-radius: .3em;
     margin: .5em;
     font-weight: bolder;
@@ -76,15 +76,19 @@ button.in-form {
 
 /* column input */
 /* search input */
-#left-container div input {
+#left-container>div>input {
     border-radius: 100em;
     height: 2em;
     padding: 0 1em;
     margin: 0 1em;
-    flex-grow: 1;
     border: 1px solid var(--theme-border);
+    flex-grow: 1;
     width: 1em;
     min-width: 5em;
+}
+
+#left-container>div.flex-row {
+    align-self: stretch;
 }
 
 /* table style */

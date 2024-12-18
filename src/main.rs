@@ -45,7 +45,17 @@ fn launch() -> _ {
     });
     rocket::build().mount(
         "/",
-        routes![index, files, sort, add_game, del_game, edit_game, get_game],
+        routes![
+            index,
+            files,
+            search,
+            add_game,
+            del_game,
+            edit_game,
+            get_game,
+            get_tag,
+            get_property
+        ],
     )
 }
 
@@ -60,8 +70,9 @@ async fn index() -> Redirect {
     // NamedFile::open("index.html").await.unwrap()
 }
 
-#[get("/sort?<key>&<rev>&<num>&<page>&<columns>")]
-async fn sort(
+#[get("/search?<query>&<key>&<rev>&<num>&<page>&<columns>")]
+async fn search(
+    query: Option<&str>,
     key: Option<&str>,
     rev: Option<bool>,
     num: Option<usize>,
@@ -81,6 +92,7 @@ async fn sort(
         "声音",
         "结束时间",
     ];
+    let query = query.unwrap_or_default();
     let key = key.unwrap_or("结束时间");
     let num = num.unwrap_or(500);
     let rev = rev.unwrap_or(false);
@@ -99,8 +111,7 @@ async fn sort(
         .unwrap_or(Vec::from(DEFAULT_COLUMN));
 
     let db = db!();
-    let games = db.get_all_id();
-    let mut games = games.iter().copied().collect::<Vec<_>>();
+    let mut games = db.search(query);
     // sort
     games.sort_by(|&a, &b| {
         let a_game = match db.get_game(a) {
@@ -139,7 +150,7 @@ async fn sort(
     }
     drop(db);
 
-    let start = (games.len() - 1).min(num * page);
+    let start = games.len().min(num * page);
     let end = games.len().min(num * (page + 1));
 
     Json(Table::from(&games[start..end], columns))
@@ -148,6 +159,16 @@ async fn sort(
 #[get("/get_game?<id>")]
 async fn get_game(id: u64) -> Option<Json<Game>> {
     db!().get_game(id).map(|e| Json(e.clone()))
+}
+
+#[get("/get_tag")]
+async fn get_tag() -> Option<String> {
+    serde_json::to_string(&db!().tag_set).ok()
+}
+
+#[get("/get_property")]
+async fn get_property() -> Option<String> {
+    serde_json::to_string(&db!().property_set).ok()
 }
 
 #[post("/add_game", data = "<game>")]

@@ -1,18 +1,44 @@
-#Vnfind
+# Vnfind
 
-todo:
+A personal game data manage application.
 
-- configurable
-- remove num_property
-- tag/property set
+## todo
 
-API:
-- GET /
+- [ ] tag/property set
+- [x] search
+- [ ] comment
+- [ ] configurable
+- [ ] list support
+    - [ ] save/create/edit
+    - [ ] opts
+- [ ] connect to websites
+    - [ ] sync comment
+    - [ ] fetch information
+
+## API of backend
+
+- GET `/`
     home page
-- GET /sort
-    return a json like below:
+- GET `/search`
+    params:
+    - `query` : String, used for search. Only return games contain the query string.
+    - `key` : String, used for sorting result, default is `结束时间`
+    - `rev` : bool, if `true` then reverse the result's order, default is `false`
+    - `num` : int, how many games is returned, default is `500`
+    - `page` : int, return games ranked in $(num*(page-1), num*page]$, default is `1`
+    - `columns` : String, return what columns, splited by `|` or `｜`. default is `剧情|画面|角色|感情|玩法|日常|色情|声音|结束时间`. (`id` and `标题` columns are always returned)
+
+    example: `/sort?key=剧情&rev=true&num=2&page=2&columns=剧情|结束时间`, this request will return 2 games with the third and forth smallest score in 剧情.
+    response is a json like below:
     ```
     {
-        "column": ["title", ""]
+        "column": ["id", "标题", "剧情", "结束时间"],
+        "row": [
+            ["3",  "Symphonic Rain", "9",   "2024-01-01"],
+            ["24", "Steins;Gate",    "9.1", "2011-08-17"],
+        ]
     }
     ```
+- GET `/get_game`
+- POST `/add_game`
+- POST `/edit_game`

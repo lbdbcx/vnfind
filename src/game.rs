@@ -53,6 +53,18 @@ impl Game {
     pub fn get_property(&self, name: &str) -> Option<&str> {
         self.property.get(name).map(|x| x.as_str())
     }
+    pub fn have(&self, s: &str) -> bool {
+        if self.tag.contains(s) || self.property.contains_key(s) {
+            true
+        } else {
+            for x in self.property.values() {
+                if x.contains(s) {
+                    return true;
+                }
+            }
+            false
+        }
+    }
     pub fn get_num_property(&self, name: &str) -> Option<f64> {
         self.property
             .get(name)
@@ -72,18 +84,7 @@ impl Game {
     }
     pub fn satisfy(&self, filt: &Filter) -> bool {
         match filt {
-            Filter::Have(s) => {
-                if self.tag.contains(s) || self.property.contains_key(s) {
-                    true
-                } else {
-                    for x in self.property.values() {
-                        if x.contains(s) {
-                            return true;
-                        }
-                    }
-                    false
-                }
-            }
+            Filter::Have(s) => self.have(s),
             Filter::PropertyEqual(key, value) => {
                 let game_property = self.property.get(key);
                 if let Some(s) = game_property {

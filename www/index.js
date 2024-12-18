@@ -1,4 +1,4 @@
-var current_sort = { rev: false, columns: "类型|剧情|角色|感情|画面|结束时间" };
+var current_search = { rev: false, columns: "类型|剧情|角色|感情|画面|结束时间" };
 const INIT_GAME = {
     property: {
         "标题": "",
@@ -19,13 +19,13 @@ function is_num(x) {
     return /^-?\d+(.\d+)?$/.test(x);
 }
 
-function get_sort_game(data) {
+function send_search_game(data) {
     return $.ajax({
-        url: "/sort",
+        url: "/search",
         data,
         callback: function (_, statusText) {
             if (statusText == "success") {
-                current_sort = data;
+                current_search = data;
             }
         }
     });
@@ -65,19 +65,19 @@ async function show_game_detail(id) {
 }
 
 async function show_game_table(data) {
-    data = await get_sort_game(data);
+    data = await send_search_game(data);
 
     let table = $("<table></table>");
     let head = $("<tr></tr>");
     for (x of data.column) {
         let y = $("<th></th>").text(x);
-        if (current_sort.key == x) {
-            y.addClass(current_sort.rev ? "sortup" : "sortdown");
+        if (current_search.key == x) {
+            y.addClass(current_search.rev ? "sortup" : "sortdown");
         }
         y.on({
             click: function () {
                 let key = $(this).text();
-                let d = current_sort;
+                let d = current_search;
                 if (d.key == key) {
                     d.rev = !d.rev;
                 } else {
@@ -131,13 +131,13 @@ function add_value(form, k = "", v = "") {
 
 function send_add_game(data) {
     $.post("/add_game", JSON.stringify(data), function (res) {
-        show_game_table(current_sort);
+        show_game_table(current_search);
         show_game_detail(res);
     })
 }
 function send_modify_game(data) {
     $.post(`/edit_game?id=${data.id}`, JSON.stringify(data), function () {
-        show_game_table(current_sort);
+        show_game_table(current_search);
         show_game_detail(data.id);
     })
 }
@@ -200,14 +200,29 @@ function show_form(data) {
 }
 
 window.onload = async function () {
-    show_game_table(current_sort);
+    show_game_table(current_search);
     $("#add-btn").click(function () {
         show_form(INIT_GAME);
     });
-    $("#columns-input").val(current_sort.columns).on('keypress', function (e) {
+    $("#columns-input").val(current_search.columns).on('keypress', function (e) {
         if (e.which === 13) {
-            let d = current_sort;
+            let d = current_search;
             d.columns = $(this).val();
+            show_game_table(d);
+        }
+    });
+    $("#search-input").on({
+        keypress: function (e) {
+            if (e.which === 13) {
+                let d = current_search;
+                d.query = $(this).val();
+                show_game_table(d);
+            }
+        },
+        input: function () {
+            console.log($(this).val());
+            let d = current_search;
+            d.query = $(this).val();
             show_game_table(d);
         }
     });
