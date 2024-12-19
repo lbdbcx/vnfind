@@ -1,4 +1,6 @@
 var current_search = { rev: false, columns: "类型|剧情|角色|感情|画面|结束时间" };
+var last_auto_save_time;
+const AUTO_SAVE_TIME_SEC = 5;
 const INIT_GAME = {
     property: {
         "标题": "",
@@ -31,6 +33,13 @@ function send_search_game(data) {
     });
 }
 
+function request_game_comment(id) {
+    return $.get(`/get_comment`, { id });
+}
+function send_game_comment(id, s) {
+    return $.post(`/set_comment?id=${id}`, s);
+}
+
 function get_game(id) {
     return $.get(`/get_game?id=${id}`);
 }
@@ -61,6 +70,42 @@ async function show_game_detail(id) {
         tags.append($(`<span class="tag">${x}</span>`));
     }
     main.append(tags);
+    let comment = $(`<div id="comment_area" class="flex-column"></div>`);
+    comment.on({
+        to_edit_mode: async function () {
+            last_auto_save_time = Date.now();
+            let inner = $(`<textarea placeholder="markdown is supported!"></textarea>`).val(await request_game_comment(id)).keyup(async function (e) {
+                if ((Date.now() - last_auto_save_time) / 1000 > AUTO_SAVE_TIME_SEC) {
+                    send_game_comment(id, $(this).val());
+                    auto_save_time = Date.now();
+                }
+                // Ctrl + Enter
+                if ((e.keyCode == 10 || e.keyCode == 13) && e.ctrlKey) {
+                    await send_game_comment(id, $(this).val());
+                    $("#comment_area").trigger("to_view_mode");
+                }
+                // Escape
+                // else if (e.keyCode == 27) {
+                //     $("#comment_area").trigger("to_view_mode");
+                // }
+            });
+            let btn = $('<button>取消</button>').click(function () {
+                $("#comment_area").trigger("to_view_mode");
+            });
+            $(this).empty().append(inner).append(btn);
+        },
+        to_view_mode: async function () {
+            let md = await request_game_comment(id);
+            if (md == "") { md = "这个游戏还没有锐评..."; }
+            md = marked.parse(md);
+            let inner = $(`<div></div>`).html(md).dblclick(function () {
+                $("#comment_area").trigger("to_edit_mode");
+            });
+            $(this).empty().append(inner);
+        }
+    });
+    main.append(comment);
+    comment.trigger("to_view_mode");
     $("#right-container").html(main).removeClass("hidden");
 }
 
@@ -200,6 +245,7 @@ function show_form(data) {
 }
 
 window.onload = async function () {
+    marked.use({ gfm: true, breaks: true });
     show_game_table(current_search);
     $("#add-btn").click(function () {
         show_form(INIT_GAME);

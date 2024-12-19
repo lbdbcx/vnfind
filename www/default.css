@@ -123,6 +123,33 @@ table {
     content: "⬇";
 }
 
+/* comment area */
+#comment_area {
+    border: 1px solid var(--theme-border);
+    border-radius: .2em;
+    margin-top: 1em;
+    padding: 0 .5em;
+    align-items: start;
+}
+
+#comment_area>div {
+    width: 100%;
+}
+
+#comment_area textarea {
+    background: transparent;
+    border: none;
+    color: var(--theme-foreground);
+    width: 100%;
+    height: 15em;
+    font-size: 1.3em;
+    resize: vertical;
+}
+
+#comment_area button {
+    margin-bottom: -3.7em;
+}
+
 /* form style */
 #add-form {
     margin-top: 3em;
@@ -185,6 +212,7 @@ table {
     margin-right: 2em;
 }
 
+#right-container,
 #left-container {
     overflow: scroll;
     padding-top: 1em;
@@ -195,13 +223,13 @@ table {
 }
 
 /* for Chrome, Safari, Opera */
+#right-container::-webkit-scrollbar,
 #left-container::-webkit-scrollbar {
     display: none;
 }
 
 #right-container {
     padding-left: 2em;
-    padding-top: 1em;
     min-width: 25em;
     width: 40svw;
     border-left: 1px solid var(--theme-border);
