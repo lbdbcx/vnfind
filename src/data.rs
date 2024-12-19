@@ -21,9 +21,7 @@ pub struct DataBase {
     pub tag_set: HashSet<String>,
     pub property_set: HashSet<String>,
 }
-
 const SAVE_NAME: &str = "game.dat";
-
 impl DataBaseStore {
     pub fn empty() -> Self {
         Self {
@@ -31,29 +29,9 @@ impl DataBaseStore {
             games: HashMap::new(),
         }
     }
-    fn default_path() -> String {
-        let path = std::env::current_exe();
-        if path.is_err() {
-            log::warn("Cannot get executable's path > using relative path!");
-            return SAVE_NAME.to_string();
-        }
-        let path = path.unwrap();
-        let path = path.parent();
-        if path.is_none() {
-            log::warn("Cannot get executable's path > using relative path!");
-            return SAVE_NAME.to_string();
-        }
-        let path = path.unwrap();
-        let path = path.join(SAVE_NAME);
-        let path = path.to_str();
-        if path.is_none() {
-            log::warn("Cannot get executable's path > using relative path!");
-            return SAVE_NAME.to_string();
-        }
-        path.unwrap().to_string()
-    }
+
     fn save(&self) {
-        let path = Self::default_path();
+        let path = crate::data_path().join(SAVE_NAME);
         let json = serde_json::to_string(self);
         if json.is_err() {
             log::error(&format!(
@@ -67,7 +45,7 @@ impl DataBaseStore {
         let f = File::create(&path);
         if f.is_err() {
             log::error(&format!(
-                "In data.rs > DataBase::save() > File::create({}) | {}",
+                "In data.rs > DataBase::save() > File::create({:?}) | {}",
                 path,
                 f.err().unwrap()
             ));
@@ -84,14 +62,14 @@ impl DataBaseStore {
     }
     fn load(path: Option<&str>) -> Option<Self> {
         let path = match path {
-            Some(p) => p.to_string(),
-            None => Self::default_path(),
+            Some(p) => p.into(),
+            None => super::data_path().join(SAVE_NAME),
         };
 
         let f = File::open(&path);
         if f.is_err() {
             log::error(&format!(
-                "In data.rs > DataBase::load() > File::open({}) | {}",
+                "In data.rs > DataBase::load() > File::open({:?}) | {}",
                 path,
                 f.err().unwrap()
             ));

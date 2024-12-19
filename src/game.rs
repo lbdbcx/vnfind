@@ -1,4 +1,9 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    fs::{self, read_to_string, write},
+    io::Write,
+    path::PathBuf,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -121,6 +126,46 @@ impl Game {
             Filter::Or(f1, f2) => self.satisfy(f1) || self.satisfy(f2),
             Filter::And(f1, f2) => self.satisfy(f1) && self.satisfy(f2),
         }
+    }
+    fn comment_path(&self) -> PathBuf {
+        let res = crate::data_path().join("comment");
+        match res.try_exists() {
+            Ok(true) => {}
+            Ok(false) => fs::create_dir_all(&res).unwrap_or_else(|e| {
+                log::error(&format!(
+                    "In game.rs > Game::comment_path > create_dir_all({:?}) | {}",
+                    res, e
+                ));
+                panic!()
+            }),
+            Err(e) => {
+                log::error(&format!(
+                    "In game.rs > Game::comment_path > try_exist({:?}) | {}",
+                    res, e
+                ));
+                panic!()
+            }
+        }
+        res.join(self.id.to_string()).with_extension("md")
+    }
+    pub fn save_comment(&self, s: &str) {
+        let path = self.comment_path();
+        std::fs::write(&path, s).unwrap_or_else(|e| {
+            log::error(&format!(
+                "In game.rs > Game::save_comment > fs::write({:?}) | {}",
+                path, e
+            ));
+        });
+    }
+    pub fn load_comment(&self) -> String {
+        let path = self.comment_path();
+        read_to_string(&path).unwrap_or_else(|e| {
+            log::info(&format!(
+                "In game.rs > Game::load_comment > fs::read_to_string({:?}) | {}",
+                path, e
+            ));
+            String::default()
+        })
     }
 }
 

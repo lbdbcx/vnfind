@@ -54,7 +54,9 @@ fn launch() -> _ {
             edit_game,
             get_game,
             get_tag,
-            get_property
+            get_property,
+            get_comment,
+            set_comment,
         ],
     )
 }
@@ -183,4 +185,36 @@ async fn del_game() {}
 async fn edit_game(game: Json<Game>, id: u64) {
     assert_eq!(game.id, id);
     db!().modify(id, game.0);
+}
+#[get("/get_comment?<id>")]
+async fn get_comment(id: u64) -> String {
+    db!().get_game(id).unwrap().load_comment()
+}
+
+#[post("/set_comment?<id>", data = "<s>")]
+async fn set_comment(id: u64, s: &str) {
+    db!().get_game(id).unwrap().save_comment(s);
+}
+
+fn data_path() -> PathBuf {
+    let path = std::env::current_exe();
+    if path.is_err() {
+        log::warn("Cannot get executable's path > using relative path!");
+        return "data".into();
+    }
+    let path = path.unwrap();
+    let path = path.parent();
+    if path.is_none() {
+        log::warn("Cannot get executable's path > using relative path!");
+        return "data".into();
+    }
+    let path = path.unwrap();
+    path.join("data")
+
+    // let path = path.to_str();
+    // if path.is_none() {
+    //     log::warn("Cannot get executable's path > using relative path!");
+    //     return SAVE_NAME.to_string();
+    // }
+    // path.unwrap().to_string()
 }
