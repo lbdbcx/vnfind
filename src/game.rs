@@ -128,7 +128,7 @@ impl Game {
         }
     }
     fn comment_path(&self) -> PathBuf {
-        let res = crate::data_path().join("comment");
+        let res = crate::config::data_path().join("comment");
         match res.try_exists() {
             Ok(true) => {}
             Ok(false) => fs::create_dir_all(&res).unwrap_or_else(|e| {

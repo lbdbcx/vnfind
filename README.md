@@ -4,9 +4,10 @@ A personal game data manage application.
 
 ## todo
 
+- [x] sort
 - [ ] tag/property set
 - [x] search
-- [ ] comment
+- [x] comment
 - [ ] configurable
 - [ ] list support
     - [ ] save/create/edit
@@ -28,7 +29,7 @@ A personal game data manage application.
     - `page` : int, return games ranked in $(num*(page-1), num*page]$, default is `1`
     - `columns` : String, return what columns, splited by `|` or `｜`. default is `剧情|画面|角色|感情|玩法|日常|色情|声音|结束时间`. (`id` and `标题` columns are always returned)
 
-    example: `/sort?key=剧情&rev=true&num=2&page=2&columns=剧情|结束时间`, this request will return 2 games with the third and forth smallest score in 剧情.
+    example: `/search?key=剧情&rev=true&num=2&page=2&columns=剧情|结束时间`, this request will return 2 games with the third and forth smallest score in 剧情 of all games.
     response is a json like below:
     ```
     {
@@ -42,3 +43,5 @@ A personal game data manage application.
 - GET `/get_game`
 - POST `/add_game`
 - POST `/edit_game`
+- GET `/get_comment`
+- POST `/set_comment`

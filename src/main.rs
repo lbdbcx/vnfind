@@ -13,7 +13,7 @@ use std::{
     io::{BufRead, BufReader, Read, Write},
     net::{TcpListener, TcpStream},
     path::{Path, PathBuf},
-    sync::{Arc, Mutex, OnceLock},
+    sync::{Arc, LazyLock, Mutex, OnceLock},
 };
 
 #[macro_use]
@@ -30,20 +30,21 @@ use rocket::{
     serde::json::Json,
 };
 
-static DB: OnceLock<Mutex<DataBase>> = OnceLock::new();
+static DB: LazyLock<Mutex<DataBase>> = LazyLock::new(|| Mutex::new(DataBase::default()));
 macro_rules! db {
     () => {
-        DB.get().unwrap().lock().unwrap()
+        DB.lock().unwrap()
     };
 }
 pub(crate) use db;
 
 #[launch]
 fn launch() -> _ {
-    DB.set(Mutex::new(DataBase::default())).unwrap_or_else(|_| {
-        error("In main.rs > launch() > DB.set() | DB is set before.");
-    });
-    rocket::build().mount(
+    let cfg = rocket::Config::figment()
+        .merge(("address", crate::config::address()))
+        .merge(("port", crate::config::port()));
+
+    rocket::custom(cfg).mount(
         "/",
         routes![
             index,
@@ -63,7 +64,9 @@ fn launch() -> _ {
 
 #[get("/<file..>")]
 async fn files(file: PathBuf) -> Option<NamedFile> {
-    NamedFile::open(Path::new("www/").join(file)).await.ok()
+    NamedFile::open(crate::config::web_path().join(file))
+        .await
+        .ok()
 }
 
 #[get("/")]
@@ -81,19 +84,6 @@ async fn search(
     page: Option<usize>,
     columns: Option<&str>,
 ) -> Json<output::Table> {
-    const DEFAULT_COLUMN: [&str; 11] = [
-        "id",
-        "标题",
-        "剧情",
-        "画面",
-        "角色",
-        "感情",
-        "玩法",
-        "日常",
-        "色情",
-        "声音",
-        "结束时间",
-    ];
     let query = query.unwrap_or_default();
     let key = key.unwrap_or("结束时间");
     let num = num.unwrap_or(500);
@@ -108,9 +98,9 @@ async fn search(
             if !res.contains(&"id") {
                 res.insert(0, "id");
             }
-            res
+            res.iter().map(|x| x.to_string()).collect()
         })
-        .unwrap_or(Vec::from(DEFAULT_COLUMN));
+        .unwrap_or(crate::config::default_column());
 
     let db = db!();
     let mut games = db.search(query);
@@ -194,27 +184,4 @@ async fn get_comment(id: u64) -> String {
 #[post("/set_comment?<id>", data = "<s>")]
 async fn set_comment(id: u64, s: &str) {
     db!().get_game(id).unwrap().save_comment(s);
-}
-
-fn data_path() -> PathBuf {
-    let path = std::env::current_exe();
-    if path.is_err() {
-        log::warn("Cannot get executable's path > using relative path!");
-        return "data".into();
-    }
-    let path = path.unwrap();
-    let path = path.parent();
-    if path.is_none() {
-        log::warn("Cannot get executable's path > using relative path!");
-        return "data".into();
-    }
-    let path = path.unwrap();
-    path.join("data")
-
-    // let path = path.to_str();
-    // if path.is_none() {
-    //     log::warn("Cannot get executable's path > using relative path!");
-    //     return SAVE_NAME.to_string();
-    // }
-    // path.unwrap().to_string()
 }

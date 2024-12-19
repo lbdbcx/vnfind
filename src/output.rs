@@ -15,13 +15,13 @@ pub struct Table {
 }
 
 impl Table {
-    pub fn from(games: &[u64], columns: Vec<&str>) -> Self {
+    pub fn from(games: &[u64], columns: Vec<String>) -> Self {
         let mut row = vec![];
         let db = db!();
         for &game_id in games {
             let game = db.get_game(game_id).unwrap();
             let mut this_row = vec![];
-            for &col in &columns {
+            for col in &columns {
                 this_row.push(if col == "id" {
                     game.id.to_string()
                 } else {
@@ -31,7 +31,7 @@ impl Table {
             row.push(this_row);
         }
         Self {
-            column: columns.iter().map(|&x| x.to_owned()).collect(),
+            column: columns,
             row,
         }
     }

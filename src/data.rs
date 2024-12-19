@@ -31,7 +31,7 @@ impl DataBaseStore {
     }
 
     fn save(&self) {
-        let path = crate::data_path().join(SAVE_NAME);
+        let path = crate::config::data_path().join(SAVE_NAME);
         let json = serde_json::to_string(self);
         if json.is_err() {
             log::error(&format!(
@@ -63,7 +63,7 @@ impl DataBaseStore {
     fn load(path: Option<&str>) -> Option<Self> {
         let path = match path {
             Some(p) => p.into(),
-            None => super::data_path().join(SAVE_NAME),
+            None => super::config::data_path().join(SAVE_NAME),
         };
 
         let f = File::open(&path);
