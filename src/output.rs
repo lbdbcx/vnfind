@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use serde::Serialize;
 
-use crate::game::DataProviver;
+use crate::list::DataProviver;
 
 #[macro_use]
 use super::DB;

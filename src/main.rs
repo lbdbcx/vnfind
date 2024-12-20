@@ -3,6 +3,7 @@ mod config;
 mod data;
 // mod frontend;
 mod game;
+mod list;
 mod log;
 mod output;
 
@@ -20,7 +21,8 @@ use std::{
 extern crate rocket;
 
 use data::DataBase;
-use game::{DataProviver, Filter, Game, GameList};
+use game::Game;
+use list::{DataProviver, Filter, GameList};
 use log::error;
 use output::Table;
 use rocket::{
@@ -58,6 +60,12 @@ fn launch() -> _ {
             get_property,
             get_comment,
             set_comment,
+            new_list,
+            del_list,
+            all_list,
+            get_list,
+            push_to_list,
+            del_in_list,
         ],
     )
 }
@@ -184,4 +192,49 @@ async fn get_comment(id: u64) -> String {
 #[post("/set_comment?<id>", data = "<s>")]
 async fn set_comment(id: u64, s: &str) {
     db!().get_game(id).unwrap().save_comment(s);
+}
+
+#[post("/new_list?<name>", data = "<l>")]
+async fn new_list(name: Option<&str>, l: Json<Vec<u64>>) -> String {
+    let l = l.0;
+    println!("list : {:?}", l);
+    db!().new_list(name, l).to_string()
+}
+
+#[delete("/del_list?<lid>")]
+async fn del_list(lid: usize) {
+    db!().del_list(lid);
+}
+
+#[get("/get_list?<id>")]
+async fn get_list(id: usize) -> Option<String> {
+    match db!().get_list(id) {
+        Some(l) => match serde_json::to_string(l) {
+            Ok(s) => Some(s),
+            Err(e) => {
+                log::error(&format!(
+                    "In main.rs > get_list > serde_json::to_string() | {e}\n{l:?}"
+                ));
+                None
+            }
+        },
+        None => None,
+    }
+}
+
+#[get("/all_list")]
+async fn all_list() -> String {
+    let res = db!().all_list();
+    println!("all_list : {}", res);
+    res
+}
+
+#[get("/push_to_list?<gid>&<lid>")]
+async fn push_to_list(gid: u64, lid: usize) {
+    db!().push_to_list(gid, lid);
+}
+
+#[get("/del_in_list?<gid>&<lid>")]
+async fn del_in_list(gid: u64, lid: usize) {
+    db!().del_in_list(gid, lid);
 }

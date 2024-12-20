@@ -1,11 +1,12 @@
 use crate::{
-    game::{DataProviver, Game},
+    game::Game,
+    list::{DataProviver, GameList},
     log,
 };
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
-    fs::File,
+    fs::{read_to_string, write, File},
     io::{Read, Write},
 };
 
@@ -13,6 +14,7 @@ use std::{
 pub struct DataBaseStore {
     count: u64,
     games: HashMap<u64, Game>,
+    lists: Vec<GameList>,
 }
 
 #[derive(Debug)]
@@ -21,12 +23,13 @@ pub struct DataBase {
     pub tag_set: HashSet<String>,
     pub property_set: HashSet<String>,
 }
-const SAVE_NAME: &str = "game.dat";
+const SAVE_NAME: &str = "vnfind.dat";
 impl DataBaseStore {
     pub fn empty() -> Self {
         Self {
             count: 0,
             games: HashMap::new(),
+            lists: Vec::new(),
         }
     }
 
@@ -42,21 +45,10 @@ impl DataBaseStore {
         }
         let json = json.unwrap();
 
-        let f = File::create(&path);
-        if f.is_err() {
+        if let Err(e) = write(&path, json.as_bytes()) {
             log::error(&format!(
-                "In data.rs > DataBase::save() > File::create({:?}) | {}",
-                path,
-                f.err().unwrap()
-            ));
-            return;
-        }
-        let mut f = f.unwrap();
-
-        if let Err(e) = f.write(json.as_bytes()) {
-            log::error(&format!(
-                "In data.rs > DataBase::save() > f.write() | {}",
-                e
+                "In data.rs > DataBase::save() > fs::write({:?}) | {}",
+                path, e
             ));
         }
     }
@@ -66,50 +58,31 @@ impl DataBaseStore {
             None => super::config::data_path().join(SAVE_NAME),
         };
 
-        let f = File::open(&path);
-        if f.is_err() {
-            log::error(&format!(
-                "In data.rs > DataBase::load() > File::open({:?}) | {}",
-                path,
-                f.err().unwrap()
-            ));
-            return None;
-        }
-        let mut f = f.unwrap();
-
-        let mut s = String::new();
-        if let Err(e) = f.read_to_string(&mut s) {
-            log::error(&format!(
-                "In data.rs > DataBase::load() > f.read_to_string() | {}",
-                e
-            ));
-            return None;
-        }
+        let s = match read_to_string(&path) {
+            Ok(x) => x,
+            Err(e) => {
+                log::error(&format!(
+                    "In data.rs > DataBase::load() > fs::read_to_string({:?}) | {}",
+                    path, e
+                ));
+                return None;
+            }
+        };
 
         let res = serde_json::from_str::<DataBaseStore>(&s);
-        if res.is_err() {
-            log::error(&format!(
-                "In data.rs > DateBase::load() > serde_json::from_str() | {} |\n{}",
-                res.err().unwrap(),
-                s
-            ));
-            return None;
-        };
-        res.ok()
+        match res {
+            Err(e) => {
+                log::error(&format!(
+                    "In data.rs > DateBase::load() > serde_json::from_str() | {} |\n{}",
+                    e, s
+                ));
+                std::process::exit(0);
+            }
+            Ok(x) => Some(x),
+        }
     }
     fn default() -> Self {
         Self::load(None).unwrap_or(Self::empty())
-    }
-    fn insert(&mut self, mut g: Game) -> u64 {
-        self.count += 1;
-        g.id = self.count;
-        self.games.insert(self.count, g);
-        self.save();
-        self.count
-    }
-    fn modify(&mut self, id: u64, new_game: Game) {
-        let _ = self.games.insert(id, new_game);
-        self.save();
     }
 }
 
@@ -152,13 +125,18 @@ impl DataBase {
             }
         }
     }
-    pub fn insert(&mut self, g: Game) -> u64 {
+    pub fn insert(&mut self, mut g: Game) -> u64 {
         self.update(&g);
-        self.store.insert(g)
+        self.store.count += 1;
+        g.id = self.store.count;
+        self.store.games.insert(self.store.count, g);
+        self.store.save();
+        self.store.count
     }
     pub fn modify(&mut self, id: u64, new_game: Game) {
         self.update(&new_game);
-        self.store.modify(id, new_game);
+        let _ = self.store.games.insert(id, new_game);
+        self.store.save();
     }
     pub fn search(&self, query: &str) -> Vec<u64> {
         if query.is_empty() {
@@ -171,6 +149,55 @@ impl DataBase {
             .map(|(id, _)| id)
             .copied()
             .collect()
+    }
+    pub fn new_list(&mut self, name: Option<&str>, l: Vec<u64>) -> usize {
+        let l = l
+            .iter()
+            .filter(|&&x| self.get_game(x).is_some())
+            .copied()
+            .collect::<HashSet<u64>>();
+        let cnt = self.store.lists.len();
+        self.store.lists.push(GameList {
+            games: l,
+            name: name
+                .map(|x| x.to_owned())
+                .unwrap_or(format!("List {}", cnt + 1)),
+        });
+        self.store.save();
+        cnt
+    }
+    pub fn del_list(&mut self, lid: usize) {
+        let _ = self.store.lists.remove(lid);
+        self.store.save();
+    }
+    pub fn all_list(&self) -> String {
+        let res = self.store.lists.iter().map(|x| &x.name).collect::<Vec<_>>();
+        serde_json::to_string(&res).unwrap_or_else(|e| {
+            log::error(&format!(
+                "In data.rs > DataBase::all_list() > serde_json::to_string | {}\n{:?}",
+                e, res,
+            ));
+            "[]".to_owned()
+        })
+    }
+    pub fn get_list(&self, lid: usize) -> Option<&GameList> {
+        self.store.lists.get(lid)
+    }
+    pub fn push_to_list(&mut self, gid: u64, lid: usize) {
+        let l = match self.store.lists.get_mut(lid) {
+            Some(x) => x,
+            None => return,
+        };
+        l.add_game(gid);
+        self.store.save();
+    }
+    pub fn del_in_list(&mut self, gid: u64, lid: usize) {
+        let l = match self.store.lists.get_mut(lid) {
+            Some(x) => x,
+            None => return,
+        };
+        l.del_game(gid);
+        self.store.save();
     }
 }
 

@@ -8,7 +8,7 @@ A personal game data manage application.
 - [ ] tag/property set
 - [x] search
 - [x] comment
-- [ ] configurable
+- [x] configurable
 - [ ] list support
     - [ ] save/create/edit
     - [ ] opts
@@ -16,7 +16,7 @@ A personal game data manage application.
     - [ ] sync comment
     - [ ] fetch information
 
-## API of backend
+## API
 
 - GET `/`
     home page
@@ -31,7 +31,7 @@ A personal game data manage application.
 
     example: `/search?key=剧情&rev=true&num=2&page=2&columns=剧情|结束时间`, this request will return 2 games with the third and forth smallest score in 剧情 of all games.
     response is a json like below:
-    ```
+    ```json
     {
         "column": ["id", "标题", "剧情", "结束时间"],
         "row": [
@@ -45,3 +45,15 @@ A personal game data manage application.
 - POST `/edit_game`
 - GET `/get_comment`
 - POST `/set_comment`
+
+## Config
+
+Create `config.toml` at the same path of the executable file.
+It will be like:
+```toml
+address = "127.0.0.1"
+port = 8000
+data_path = "/path/to/data/dir"
+web_path = "/path/to/frontend/dir"
+default_column = ["剧情", "结束时间"]
+```
